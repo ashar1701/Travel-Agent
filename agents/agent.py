@@ -29,30 +29,36 @@ def search_flights(origin: str, destination: str, departure_date: str = None, re
 
     response = tavily_client.search(query=f"flights from {origin} to {destination} on {departure_date} and return on {return_date}")
     return response
-
+    
 @tool
-def get_month_from_dates(start_date: str, end_date: str) -> str:
-    """Extract the matching month from the provided start and end dates to make it easier to search for things to do"""
+def get_things_to_do(destination: str, start_date: str, end_date: str) -> dict:
+    """Get things to do in a destination city in given the start date and end date 
+    to get the relevant months of travel and get things to do in those months.
+    
+    Args:
+        destination: The city to explore
+        start_date: The start date of the trip in YYYY-MM-DD format
+        end_date: The end date of the trip in YYYY-MM-DD format"""
     months=[]
     start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
     end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
     start_month_name = start_date_obj.strftime("%B")
     end_month_name = end_date_obj.strftime("%B")
-    months.append(start_month_name, end_month_name)
+    months.append(start_month_name)
+    months.append(end_month_name)
+    response = tavily_client.search(query=f"things to do in {destination} in {', '.join(months)}")
+    return response
 
-    if start_month_name == end_month_name:
-        return months[0]
-    else:
-        return months
-    
-@tool
-def get_things_to_do(destination: str, months) -> dict:
-    """Get things to do in a destination city in that month that is decoded.
+def get_foods_to_try(destination:str) -> dict:
+    """Get popular foods to try in a destination city.
     
     Args:
         destination: The city to explore
-        months: The month or months to explore activities in"""
-    response = tavily_client.search(query=f"things to do in {destination} in {', '.join(months)}")
+    
+    Returns:
+        Dictionary with popular foods to try in the destination city
+    """
+    response = tavily_client.search(query=f"popular foods to try in {destination}")
     return response
 
 
