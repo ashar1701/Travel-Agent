@@ -49,6 +49,7 @@ def get_things_to_do(destination: str, start_date: str, end_date: str) -> dict:
     response = tavily_client.search(query=f"things to do in {destination} in {', '.join(months)}")
     return response
 
+@tool
 def get_foods_to_try(destination:str) -> dict:
     """Get popular foods to try in a destination city.
     
