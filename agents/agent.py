@@ -21,6 +21,7 @@ def search_flights(origin: str, destination: str, departure_date: str = None, re
     Returns:
         Dictionary with flight search results including URLs and prices
     """
+    print("entered flight search tool \n Loading... ")
     if departure_date is None:
         departure_date = datetime.now().strftime("%Y-%m-%d")
     if return_date is None:
@@ -28,25 +29,33 @@ def search_flights(origin: str, destination: str, departure_date: str = None, re
         return response
 
     response = tavily_client.search(query=f"flights from {origin} to {destination} on {departure_date} and return on {return_date}")
+    print("Flight search tool completed\n")
     return response
     
 @tool
-def get_things_to_do(destination: str, start_date: str, end_date: str) -> dict:
+def get_things_to_do(destination: str, start_date: str, end_date: str = None) -> dict:
     """Get things to do in a destination city in given the start date and end date 
     to get the relevant months of travel and get things to do in those months.
     
     Args:
         destination: The city to explore
         start_date: The start date of the trip in YYYY-MM-DD format
-        end_date: The end date of the trip in YYYY-MM-DD format"""
+        end_date: The end date of the trip in YYYY-MM-DD format (optional)"""
     months=[]
+    print("Entered things to do tool \n Loading... ")
     start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
     start_month_name = start_date_obj.strftime("%B")
-    end_month_name = end_date_obj.strftime("%B")
     months.append(start_month_name)
-    months.append(end_month_name)
+    
+    if end_date is not None:
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        end_month_name = end_date_obj.strftime("%B")
+        # Only add end month if it's different from start month
+        if end_month_name != start_month_name:
+            months.append(end_month_name)
+    
     response = tavily_client.search(query=f"things to do in {destination} in {', '.join(months)}")
+    print("Things to do tool completed\n")
     return response
 
 @tool
@@ -59,17 +68,21 @@ def get_foods_to_try(destination:str) -> dict:
     Returns:
         Dictionary with popular foods to try in the destination city
     """
+    print("Entered foods to try tool \n Loading... ")
     response = tavily_client.search(query=f"popular foods to try in {destination}")
+    print("Foods to try tool completed\n")
     return response
 
 def flight_finder_agent(from_city: str, to_city: str, depart_date: str, return_date: str = None):
     """ function to run a specialized agent to get flight options """
+    print("Entered flight finder agent \n Loading... ")
     # Initialize the Gemini model
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash-lite",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0.7
     )
+
     llm_with_tools = llm.bind_tools([search_flights])
     system_prompt = """You are a flight search specialist. Your job is to:
     1) Search for flights using the provided tool
@@ -109,12 +122,15 @@ def flight_finder_agent(from_city: str, to_city: str, depart_date: str, return_d
         Return ONLY the JSON array, no other text."""
         
         final_response = llm.invoke(summary_prompt)
+        print("Flight finder agent completed\n")
         return final_response.content
     else:
+        print("Flight finder agent completed\n")
         return response.content
     
-def research_agent(destination: str, start_date: str, end_date: str):
+def research_agent(destination: str, start_date: str, end_date: str = None):
     """ function to run a specialized agent to get things to do and foods to try """
+    print("Entered research agent \n Loading... ")
     # Initialize the Gemini model
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash-lite",
@@ -125,10 +141,11 @@ def research_agent(destination: str, start_date: str, end_date: str):
     system_prompt = """You are a travel research specialist. Your job is to:
     1) Use the provided tools to get things to do and popular foods to try in the destination city
     2) Summarize the information clearly with relevant details
-    3) Return the information in a well-formatted list with bullet points in between these
+    3) Return the information in a well-formatted list with bullet points (use • not *) in between these
     two tags: 
     <fun_activities> and </fun_activities>
 
+    DO NOT USE MARKDOWN ASTERISKS (*). Use plain bullet points (•) or hyphens (-) instead.
     DO NOT INCLUDE ANY OTHER INFORMATION OR TEXT IN YOUR RESPONSE OTHER THAN THE LIST WITHIN THE TAGS 
     """
     user_prompt = f"""I am traveling to {destination} from {start_date} to {end_date}. 
@@ -165,60 +182,91 @@ def research_agent(destination: str, start_date: str, end_date: str):
         Return ONLY the formatted list within <fun_activities> </fun_activities> tags, no other text."""
         
         final_response = llm.invoke(summary_prompt)
+        print("Research agent completed\n")
         return final_response.content
     else:
+        print("Research agent completed\n")
         return response.content
 
-def manager_agent(from_city: str, to_city: str, depart_date: str, return_date: str):
+def manager_agent(from_city: str, to_city: str, depart_date: str, return_date: str = None):
+    print("Entered manager agent \n Loading... ")
     """Manager agent to coordinate flight and research agents."""
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash-lite",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0.7
+    )
 
-# def main():
-#     """Main function to run the travel agent for flight search."""
-    
-#     # Initialize the Gemini model
-#     llm = ChatGoogleGenerativeAI(
-#         model="gemini-2.5-flash-lite",
-#         google_api_key=os.getenv("GOOGLE_API_KEY"),
-#         temperature=0.7
-#     )
-#     llm_with_tools = llm.bind_tools([search_flights])
-    
-#     # Create the initial user prompt
-#     user_query = """I want to go on a vacation trip from New York to London. 
-#     I am looking to depart on 2025-11-22 and return on 2025-11-28. 
-#     Can you search for flights and provide me with a summary of available options including URLs and prices?"""
-#     response = llm_with_tools.invoke(user_query)
-#     if response.tool_calls:
-#         print(" Flight search tool called by agent\n")
-#         tool_call = response.tool_calls[0]
-#         print(f"Tool: {tool_call['name']}")
-#         print(f"Arguments: {tool_call['args']}\n")
-        
-#         # Call the search_flights function directly
-#         flight_results = search_flights.invoke(tool_call['args'])
-        
-#         # Step 3: Send the tool results back to the model for summarization
-#         print(" Processing flight data...\n")
-        
-#         summary_prompt = f"""Based on the following flight search results, please provide a clear, 
-#         well-formatted summary of the available flight options. Include:
-#         - Airline names if available
-#         - Prices
-#         - Booking URLs
-#         - Any other relevant information
-        
-#         Format the response in an easy-to-read list format with bullet points.
-        
-#         Flight Search Results:
-#         {flight_results}
-#         """
-        
-#         summary_response = llm.invoke(summary_prompt)
-#         print("  FLIGHT SEARCH SUMMARY")
-#         print(summary_response.content)
-#     else:
-#         print("Response from Gemini:")
-#         print(response.content)
+    # Get responses from both child agents
+    flight_finder_agent_response = flight_finder_agent(from_city, to_city, depart_date, return_date)
+    research_agent_response = research_agent(to_city, depart_date, return_date)
 
-# if __name__ == "__main__":
-#     main()
+    system_prompt = """You are a manager at a travel agency. Your job is to receive input from the research agent and  
+    flight search agent and compile a final travel plan for the user within the dates given by the user. ONLY return flights
+    whose dates match the user's travel dates and nothing else. I NEED a full detailed travel plan with suggested activities for 
+    EACH DAY. Foods to try can be a separate subtopic. REMEMBER to also include
+    URL links for your plan so the user can look up for more information. RETURN the final plan within these tags:
+
+    <final_plan> and </final_plan>
+     
+    DO NOT USE MARKDOWN ASTERISKS (*). Use plain hyphens (-) for lists. I just need plain text.
+    DO NOT INCLUDE ANY OTHER INFORMATION OR TEXT IN YOUR RESPONSE OTHER THAN THE PLAN WITHIN THE TAGS"""
+
+    if return_date:
+        user_prompt = f"""I am flying to {to_city} from {from_city} departing on {depart_date} and returning on {return_date}.
+        
+        Here is the flight information from the flight search agent:
+        {flight_finder_agent_response}
+        
+        Here is the research information about things to do and foods to try:
+        {research_agent_response}
+        
+        Please create a comprehensive travel plan combining both flight options and activities."""
+    else:
+        user_prompt = f"""I am flying to {to_city} from {from_city} departing on {depart_date} (one-way trip).
+        
+        Here is the flight information from the flight search agent:
+        {flight_finder_agent_response}
+        
+        Here is the research information about things to do and foods to try:
+        {research_agent_response}
+        
+        Please create a comprehensive travel plan combining both flight options and activities."""
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    
+    final_response = llm.invoke(messages)
+    print("Manager agent completed\n")
+    return final_response.content
+
+def main():
+    """Main function to run the multi-agent travel planner."""
+    print("Multi-Agent Travel Planner")
+    print("=" * 50)
+    
+    # Example: Trip from New York to London
+    from_city = "New York"
+    to_city = "London"
+    depart_date = "2025-11-29"
+    return_date = "2025-12-06"
+    
+    print(f"\nPlanning trip from {from_city} to {to_city}")
+    print(f"Departure: {depart_date}")
+    print(f"Return: {return_date}\n")
+    
+    print("Running multi-agent workflow...\n")
+    
+    # Call the manager agent which orchestrates everything
+    final_plan = manager_agent(from_city, to_city, depart_date, return_date)
+    
+    print("=" * 50)
+    print("YOUR COMPLETE TRAVEL PLAN")
+    print("=" * 50)
+    print(final_plan)
+    print("=" * 50)
+
+if __name__ == "__main__":
+    main()
