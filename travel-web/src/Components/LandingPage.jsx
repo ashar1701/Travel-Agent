@@ -6,9 +6,12 @@ const defaultFormState = {
   departureDate: '',
   returnDate: ''
 }
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 function LandingPage() {
   const [formData, setFormData] = useState(defaultFormState)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
   const today = new Date().toISOString().split('T')[0]
 
   const departureBeforeToday =
@@ -24,12 +27,45 @@ function LandingPage() {
     setFormData((previous) => ({ ...previous, [name]: value }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (hasTemporalError) {
       return
     }
-    console.log('Trip request submitted', formData)
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+
+    const payload = {
+      origin: formData.from,
+      destination: formData.to,
+      departure_date: formData.departureDate,
+      return_date: formData.returnDate || null
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/plan-trip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Received trip plan', data)
+    } catch (error) {
+      console.error('Unable to submit trip request', error)
+      setErrorMessage(
+        'Something went wrong while planning your trip. Please try again.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -101,12 +137,16 @@ function LandingPage() {
             </label>
           </div>
           <div className="actions">
-            <button type="submit" disabled={hasTemporalError}>
-              Plan my trip
+            <button type="submit" disabled={hasTemporalError || isSubmitting}>
+              {isSubmitting ? 'Planning…' : 'Plan my trip'}
             </button>
             {hasTemporalError ? (
               <p className="helper-text error" role="alert">
                 Please fix the highlighted dates above.
+              </p>
+            ) : errorMessage ? (
+              <p className="helper-text error" role="alert">
+                {errorMessage}
               </p>
             ) : (
               <p className="helper-text">We will never share your travel plans.</p>
