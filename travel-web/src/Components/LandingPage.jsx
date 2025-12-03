@@ -9,6 +9,15 @@ const defaultFormState = {
 
 function LandingPage() {
   const [formData, setFormData] = useState(defaultFormState)
+  const today = new Date().toISOString().split('T')[0]
+
+  const departureBeforeToday =
+    formData.departureDate !== '' && formData.departureDate < today
+  const returnBeforeDeparture =
+    formData.departureDate !== '' &&
+    formData.returnDate !== '' &&
+    formData.returnDate < formData.departureDate
+  const hasTemporalError = departureBeforeToday || returnBeforeDeparture
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -17,6 +26,9 @@ function LandingPage() {
 
   const handleSubmit = (event) => {
     event.preventDefault()
+    if (hasTemporalError) {
+      return
+    }
     console.log('Trip request submitted', formData)
   }
 
@@ -63,8 +75,14 @@ function LandingPage() {
                 type="date"
                 value={formData.departureDate}
                 onChange={handleChange}
+                min={today}
                 required
               />
+              {departureBeforeToday && (
+                <p className="field-hint error" role="alert">
+                  Departure date cannot be earlier than today.
+                </p>
+              )}
             </label>
             <label className="field">
               <span className="field-label">Return</span>
@@ -73,12 +91,26 @@ function LandingPage() {
                 type="date"
                 value={formData.returnDate}
                 onChange={handleChange}
-                min={formData.departureDate}
+                min={formData.departureDate || today}
               />
+              {returnBeforeDeparture && (
+                <p className="field-hint error" role="alert">
+                  Return date must be on or after your departure date.
+                </p>
+              )}
             </label>
           </div>
           <div className="actions">
-            <button type="submit">Plan my trip</button>
+            <button type="submit" disabled={hasTemporalError}>
+              Plan my trip
+            </button>
+            {hasTemporalError ? (
+              <p className="helper-text error" role="alert">
+                Please fix the highlighted dates above.
+              </p>
+            ) : (
+              <p className="helper-text">We will never share your travel plans.</p>
+            )}
           </div>
         </form>
       </section>
