@@ -1,3 +1,4 @@
+from datetime import date
 import uvicorn 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,11 +6,25 @@ from pydantic import BaseModel
 from typing import List
 
 
-#classes
+class TripRequest(BaseModel):
+    origin: str
+    destination: str
+    departure_date: date
+    return_date: date | None = None
+
+@app.post("/plan-trip")
+def plan_trip(trip_request: TripRequest):
+    # Implement your trip planning logic here
+    return {
+        "itinerary": [
+            {"day": 1, "summary": f"fly from {trip_request.origin} to {trip_request.destination}"},
+            {"day": 2, "summary": f"explore {trip_request.destination}"}
+        ]
+    }
 
 app = FastAPI()
 
-origins = ["https://localhost:5173"]
+origins = ["http://localhost:5173/"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
