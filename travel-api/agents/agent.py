@@ -242,31 +242,3 @@ def manager_agent(from_city: str, to_city: str, depart_date: str, return_date: s
     print("Manager agent completed\n")
     return final_response.content
 
-def main():
-    """Main function to run the multi-agent travel planner."""
-    print("Multi-Agent Travel Planner")
-    print("=" * 50)
-    
-    # Example: Trip from New York to London
-    from_city = "New York"
-    to_city = "London"
-    depart_date = "2025-11-29"
-    return_date = "2025-12-06"
-    
-    print(f"\nPlanning trip from {from_city} to {to_city}")
-    print(f"Departure: {depart_date}")
-    print(f"Return: {return_date}\n")
-    
-    print("Running multi-agent workflow...\n")
-    
-    # Call the manager agent which orchestrates everything
-    final_plan = manager_agent(from_city, to_city, depart_date, return_date)
-    
-    print("=" * 50)
-    print("YOUR COMPLETE TRAVEL PLAN")
-    print("=" * 50)
-    print(final_plan)
-    print("=" * 50)
-
-if __name__ == "__main__":
-    main()

@@ -149,7 +149,7 @@ function LandingPage() {
                 {errorMessage}
               </p>
             ) : (
-              <p className="helper-text">We will never share your travel plans.</p>
+              <p></p>
             )}
           </div>
         </form>
